@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SafeRoute</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+  <style>
+    /* Keep your existing styles here */
+    /* ... [unchanged CSS] ... */
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6fc; margin: 0; padding: 0; }
+    .container { width: 90%; max-width: 1200px; margin: auto; padding: 20px; }
+    header { background: white; border-bottom: 1px solid #ddd; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 26px; font-weight: bold; color: #4a63e7; }
+    nav ul { display: flex; gap: 20px; list-style: none; margin: 0; padding: 0; }
+    nav a { text-decoration: none; color: #444; font-weight: 500; cursor: pointer; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .hero { padding: 40px 0; background: #e7ebff; }
+    .hero h2 { font-size: 2em; margin-bottom: 20px; }
+    .btn-primary, .btn-secondary { padding: 12px 24px; border-radius: 6px; font-size: 1em; border: none; cursor: pointer; margin-right: 10px; }
+    .btn-primary { background-color: #4a63e7; color: white; }
+    .btn-secondary { background-color: transparent; border: 2px solid #4a63e7; color: #4a63e7; }
+    form { display: flex; flex-direction: column; gap: 10px; max-width: 400px; }
+    input, textarea, button { padding: 10px; font-size: 1em; border-radius: 5px; border: 1px solid #ccc; }
+    #map { height: 400px; width: 100%; margin-top: 20px; border-radius: 10px; }
+    #routeTable, #reportTable, #contactTable { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+    #routeTable th, #routeTable td,
+    #reportTable th, #reportTable td,
+    #contactTable th, #contactTable td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    #routeTable th, #reportTable th, #contactTable th { background-color: #e6e6e6; }
+    #routeTable tbody tr:hover, #reportTable tbody tr:hover { background-color: #f0f0f0; cursor: pointer; }
+    footer { background: #222; color: white; padding: 20px; margin-top: 40px; }
+    footer ul { list-style: none; display: flex; gap: 20px; justify-content: flex-end; padding: 0; }
+    footer ul li a { color: white; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <h1 class="logo">SafeRoute</h1>
+    <nav>
+      <ul>
+        <li><a onclick="showSection('home')">Home</a></li>
+        <li><a onclick="showSection('about')">About Us</a></li>
+        <li><a onclick="showSection('report')">Report a Location</a></li>
+        <li><a onclick="showSection('phonebook')">Phonebook</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Home Section -->
+    <section id="home" class="section active">
+        <div class="hero">
+          <h2>Helping Women Travel Safer, One Route at a Time.</h2>
+          <button class="btn-primary" onclick="document.getElementById('route-section').scrollIntoView({behavior:'smooth'})">Find a Safe Route</button>
+        </div>
+        <div id="route-section">
+            <div style="display: flex; flex-wrap: wrap; gap: 30px;">
+                <div style="flex: 1;">
+                  <!-- Existing route form and table stays here -->
+              
+          <h3>Plan Your Safe Route</h3>
+          <form id="routeForm">
+            <input type="text" id="start" placeholder="Start Location in Pune" required />
+            <input type="text" id="end" placeholder="End Location in Pune" required />
+            <button type="submit">Get Routes</button>
+          </form>
+          <table id="routeTable">
+            <thead>
+              <tr>
+                <th>Route Type</th>
+                <th>Lighting</th>
+                <th>Traffic</th>
+                <th>Distance (km)</th>
+                <th>Time (min)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="map"></div>
+        </div>
+
+        <!-- New Previously Reported Locations Box -->
+        <div style="flex: 0 0 300px; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); max-height: 600px; overflow-y: auto;">
+          <h4>Previously Reported Locations</h4>
+          <ul id="reportedLocationsList" style="list-style: disc; padding-left: 20px; font-size: 0.95em; color: #333;"></ul>
+        </div>
+      </div> <!-- End of flex wrapper -->
+      
+      </section>
+  
+      <!-- About Section -->
+      <section id="about" class="section">
+        <h3>About Us</h3>
+        <p>
+          We are a team of 4 girls from MKSSS Cummins College of Engineering for Women, Pune.<br/>
+          SafeRoute is our initiative to help women feel safer while traveling at night by recommending the safest routes based on lighting, traffic, and community reports.
+        </p>
+      </section>
+  
+      <!-- Report Section -->
+      <section id="report" class="section">
+        <h3>Report a Location</h3>
+        <form id="reportForm">
+          <input type="text" id="reportLocation" placeholder="Location Name" required />
+          <textarea id="reportDescription" placeholder="Describe your experience..." rows="4" required></textarea>
+          <button type="submit">Submit Report</button>
+        </form>
+  
+        <table id="reportTable">
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+  
+      <!-- Phonebook Section -->
+      <section id="phonebook" class="section">
+        <h3>Emergency Phonebook</h3>
+        <p>Add your own emergency contacts or browse important helpline numbers and NGOs.</p>
+        <form id="addContactForm">
+          <input type="text" id="contactName" placeholder="Contact Name" required />
+          <input type="text" id="contactNumber" placeholder="Contact Number" required />
+          <button type="submit">Add Contact</button>
+        </form>
+  
+        <div style="margin-top: 20px;">
+          <input type="text" id="searchInput" placeholder="Search by name" />
+          <button onclick="searchContact()">Search</button>
+        </div>
+  
+        <table id="contactTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone Number</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 SafeRoute</p>
+      <ul>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Contact</a></li>
+        <li><a href="#">Terms</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'phonebook') renderContacts();
+      if (id === 'report') renderReports();
+    }
+
+    // Map and Routing Code (unchanged)
+    const map = L.map('map').setView([18.5204, 73.8567], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let control = null;
+    function displayRoute(route, color) {
+      if (control) map.removeControl(control);
+      control = L.Routing.control({
+        waypoints: route.coordinates.map(p => L.latLng(p[0], p[1])),
+        routeWhileDragging: false,
+        addWaypoints: false,
+        createMarker: () => null,
+        lineOptions: { styles: [{ color: color, weight: 5 }] }
+      }).addTo(map);
+    }
+
+    document.getElementById('routeForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const startQuery = document.getElementById('start').value + ', Pune';
+      const endQuery = document.getElementById('end').value + ', Pune';
+
+      Promise.all([
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${startQuery}`).then(res => res.json()),
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${endQuery}`).then(res => res.json())
+      ]).then(([startData, endData]) => {
+        if (!startData.length || !endData.length) {
+          alert('Please enter valid Pune locations.');
+          return;
+        }
+        const start = [parseFloat(startData[0].lat), parseFloat(startData[0].lon)];
+        const end = [parseFloat(endData[0].lat), parseFloat(endData[0].lon)];
+
+        const router = L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' });
+        router.route([
+          { latLng: L.latLng(start[0], start[1]) },
+          { latLng: L.latLng(end[0], end[1]) }
+        ], (err, routes) => {
+          if (err || !routes.length) {
+            alert('Could not find a route.');
+            return;
+          }
+
+          const base = routes[0];
+          const baseDistance = base.summary.totalDistance / 1000;
+          const baseTime = base.summary.totalTime / 60;
+
+          const variants = [
+            {
+              name: 'Safest', lighting: 5, traffic: 1, color: 'green',
+              distance: (baseDistance + 0.5).toFixed(2),
+              time: (baseTime + 6).toFixed(0),
+              coordinates: [start, [start[0]+0.01, start[1]+0.008], end]
+            },
+            {
+              name: 'Moderate', lighting: 3, traffic: 2, color: 'blue',
+              distance: (baseDistance + 0.2).toFixed(2),
+              time: (baseTime + 3).toFixed(0),
+              coordinates: [start, [start[0]+0.006, start[1]-0.004], end]
+            },
+            {
+              name: 'Fastest', lighting: 1, traffic: 3, color: 'red',
+              distance: baseDistance.toFixed(2),
+              time: baseTime.toFixed(0),
+              coordinates: [start, end]
+            }
+          ];
+
+          const tbody = document.querySelector('#routeTable tbody');
+          tbody.innerHTML = '';
+          variants.forEach(route => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${route.name}</td>
+              <td>${route.lighting}</td>
+              <td>${route.traffic}</td>
+              <td>${route.distance}</td>
+              <td>${route.time}</td>
+            `;
+            row.onclick = () => displayRoute(route, route.color);
+            tbody.appendChild(row);
+          });
+
+          displayRoute(variants[0], variants[0].color);
+        });
+      });
+    });
+    // ... [Same as your original JavaScript for map and routing] ...
+
+    // Report Section Logic with localStorage
+    const reportStorageKey = 'safepath_reports';
+    function renderReportedLocationsList() {
+  const list = document.getElementById('reportedLocationsList');
+  if (!list) return;
+  list.innerHTML = '';
+  const reports = JSON.parse(localStorage.getItem('safepath_reports')) || [];
+  const uniqueLocations = [...new Set(reports.map(r => r.location))];
+  uniqueLocations.forEach(loc => {
+    const li = document.createElement('li');
+    li.textContent = loc;
+    list.appendChild(li);
+  });
+}
+
+function renderReports() {
+  const tableBody = document.querySelector('#reportTable tbody');
+  tableBody.innerHTML = '';
+  const reports = JSON.parse(localStorage.getItem('safepath_reports')) || [];
+  reports.forEach(({ location, description }) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${location}</td><td>${description}</td>`;
+    tableBody.appendChild(row);
+  });
+}
+
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const location = document.getElementById('reportLocation').value.trim();
+      const description = document.getElementById('reportDescription').value.trim();
+      if (location && description) {
+        const reports = JSON.parse(localStorage.getItem(reportStorageKey)) || [];
+        reports.push({ location, description });
+        localStorage.setItem(reportStorageKey, JSON.stringify(reports));
+        document.getElementById('reportLocation').value = '';
+        document.getElementById('reportDescription').value = '';
+        renderReports();
+        renderReportedLocationsList();
+
+      }
+    });
+
+    // Phonebook Feature
+    let contacts = [
+      { name: "Women Helpline (National)", number: "181" },
+      { name: "Police Women Helpline", number: "1091" },
+      { name: "Pune Rural Police Women & Children Cell", number: "197" },
+      { name: "Police", number: "100 / 112" },
+      { name: "Ambulance", number: "108" },
+      { name: "Fire Brigade", number: "101" },
+      { name: "Childline (For Children in Distress)", number: "1098" },
+      { name: "Disaster Management Control Room", number: "1077" },
+      { name: "Pune City Police Control Room", number: "020-26126296 / 020-26122880" },
+      { name: "Pune Police WhatsApp Helpline", number: "8975283100" },
+      { name: "Pimpri Chinchwad Police Emergency", number: "112" },
+      { name: "Pimpri Chinchwad Police WhatsApp", number: "9529691966" },
+      { name: "Pune Municipal Corporation (PMC) Helpline", number: "1800-1030-222" },
+      { name: "Pimpri Chinchwad Municipal Corporation (PCMC) Helpline", number: "1800-1030-222" },
+      { name: "Sakhi One Stop Centre (Yerwada, Pune)", number: "7507771612 / 9370346499" },
+      { name: "Chaitanya Mahila Mandal (Moshi, Pune)", number: "9422004152 / 8411004180 / 7507771612" },
+      { name: "Aalochana Centre for Women (Shivaji Nagar, Pune)", number: "020-25678133" },
+      { name: "ASHA Crisis Intervention Cell (Pune)", number: "9421016006" },
+      { name: "Nari Samata Manch (Sadashiv Peth, Pune)", number: "9766103458 / 7030117701 / 7030117702" },
+      { name: "Saheli Sangh (Budhwar Peth, Pune)", number: "020-65287297" },
+      { name: "Swadhar IDWC (Pune)", number: "Visit swadharpune.org" },
+      { name: "Seva Sahayog Foundation (Navi Peth, Pune)", number: "7420041418" },
+      { name: "Mahila Shakti Pratishthan (Warje, Pune)", number: "Visit mahilashakti.org" },
+      { name: "Swayam Shikshan Prayog (Pune)", number: "Visit swayamshikshanprayog.org" }
+    ];
+
+    let contactHashTable = {};
+
+    function renderContacts() {
+      const tbody = document.querySelector('#contactTable tbody');
+      tbody.innerHTML = '';
+      contactHashTable = {};
+      contacts.forEach(c => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${c.name}</td><td>${c.number}</td>`;
+        tbody.appendChild(row);
+        contactHashTable[c.name.toUpperCase()] = c.number;
+      });
+      localStorage.setItem('safepath_contacts', JSON.stringify(contacts));
+    }
+
+    document.getElementById('addContactForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('contactName').value.trim();
+      const number = document.getElementById('contactNumber').value.trim();
+      if (name && number) {
+        contacts.push({ name, number });
+        document.getElementById('contactName').value = '';
+        document.getElementById('contactNumber').value = '';
+        renderContacts();
+      }
+    });
+
+    function bubbleSortContacts() {
+      let n = contacts.length;
+      for (let i = 0; i < n - 1; i++) {
+        for (let j = 0; j < n - i - 1; j++) {
+          if (contacts[j].name.toLowerCase() > contacts[j + 1].name.toLowerCase()) {
+            [contacts[j], contacts[j + 1]] = [contacts[j + 1], contacts[j]];
+          }
+        }
+      }
+      renderContacts();
+      alert('Contacts sorted using Bubble Sort (O(n²))');
+    }
+
+    function mergeSortContacts() {
+      contacts = mergeSort(contacts);
+      renderContacts();
+      alert('Contacts sorted using Merge Sort (O(n log n))');
+    }
+
+    function mergeSort(arr) {
+      if (arr.length <= 1) return arr;
+      const mid = Math.floor(arr.length / 2);
+      const left = mergeSort(arr.slice(0, mid));
+      const right = mergeSort(arr.slice(mid));
+      return merge(left, right);
+    }
+
+    function merge(left, right) {
+      let result = [], i = 0, j = 0;
+      while (i < left.length && j < right.length) {
+        if (left[i].name.toLowerCase() < right[j].name.toLowerCase()) {
+          result.push(left[i++]);
+        } else {
+          result.push(right[j++]);
+        }
+      }
+      return result.concat(left.slice(i)).concat(right.slice(j));
+    }
+
+    function searchContact() {
+      const query = document.getElementById('searchInput').value.trim().toUpperCase();
+      if (!query) {
+        alert('Please enter a contact name to search.');
+        return;
+      }
+      if (contactHashTable[query]) {
+        alert(`Found: ${query} - ${contactHashTable[query]}`);
+        return;
+      }
+      const found = contacts.find(c => c.name.toUpperCase() === query);
+      if (found) {
+        alert(`${found.name} - ${found.number}`);
+      } else {
+        alert('Contact not found.');
+      }
+    }
+
+    // Initialize all persisted sections
+    renderReports();
+    renderContacts();
+    renderReportedLocationsList();
+  </script>
+</body>
+</html>

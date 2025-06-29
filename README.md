@@ -53,5 +53,7 @@ SafeRoute aims to:
 Below is a preview of the SafeRoute application showcasing the route planner, report submission section, and emergency contact phonebook.
 
 ![SafeRoute Web Interface](https://github.com/user-attachments/assets/e0d8b11f-3f32-44ec-88d4-bb1e9ff5e91e)
+---
+[View Live Site](https://astha-rai.github.io/SafeRoute/)
 
 
